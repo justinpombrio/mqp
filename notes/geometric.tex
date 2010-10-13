@@ -1,0 +1,436 @@
+\documentclass{article}
+
+\usepackage{amsmath, amsthm, amssymb}
+
+\begin{document}
+\title{Geometric Logic & Strand Spaces}
+\author{Justin Pombrio}
+\date{5/28/10}
+
+\newtheorem{theorem}{Theorem}
+
+\newcommand{\closure}{\odot}
+\newcommand{\OR}{\bigvee}
+\newcommand{\AND}{\bigwedge}
+\newcommand{\true}{\top}
+\newcommand{\false}{\bot}
+\newcommand{\imp}{\Rightarrow}
+\newcommand{\seq}[2]{#1 \ \vdash\  #2}
+\newcommand{\aseq}[2]{#1 & \ \vdash\  #2}
+
+\newcommand{\indOr}{\vee}
+
+% Sorts
+\newcommand{\Node}{\mbox{Node}}
+\newcommand{\Msg}{\mbox{Term}}
+\newcommand{\Strand}{\mbox{Strand}}
+
+% Functions
+\newcommand{\funcSig}[3]{#1 & : #2 \rightarrow #3}
+\newcommand{\inv}[1]{#1^{-1}}
+\newcommand{\invinv}[1]{#1^{-1 -1}}
+\newcommand{\sk}[1]{\mbox{sk}(#1)}
+\newcommand{\pk}[1]{\mbox{pk}(#1)}
+\newcommand{\ltk}[1]{\mbox{lkt}(#1)}
+\newcommand{\msg}[1]{\mbox{msg}(#1)}
+\newcommand{\cat}[2]{#1 #2}
+\newcommand{\enc}[2]{\{#1\}_{#2}}
+\newcommand{\strand}[1]{\mbox{strand}(#1)}
+
+% Given Relations
+\newcommand{\pred}[2]{#1 \leq #2}
+\newcommand{\strPred}[2]{#1 \Rightarrow^* #2}
+\newcommand{\outbound}[1]{+#1}
+\newcommand{\inbound}[1]{-#1}
+\newcommand{\non}[1]{\mbox{non } #1}
+\newcommand{\uniq}[2]{#1 \mbox{ uniq-orig } #2}
+\newcommand{\atomic}[1]{\mbox{atomic } #1}
+
+% Defined Relations
+\newcommand{\outPred}[2]{#1 \mbox{ out-pred } #2}
+\newcommand{\subterm}[2]{#1 \sqsubseteq #2}
+\newcommand{\visSubterm}[2]{#1 \sqsubseteq_v #2}
+\newcommand{\avail}[1]{\mbox{avail } #1}
+\newcommand{\unavail}[1]{\mbox{unavail } #1}
+\newcommand{\comp}[1]{\mbox{compromised } #1}
+\newcommand{\occ}[2]{#1 \mbox{ occ } #2}
+\newcommand{\expl}[2]{#1 \mbox{ expl } #2}
+\newcommand{\before}[2]{#1 \mbox{ sent-before } #2}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%
+\section{Notes}
+%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsection{Definitions}
+\begin{description}
+
+\item[Signature] A set of constant symbols $c$, function symbols $f$
+with arity, and relation symbols $R$ with arity.
+
+\item[Model] (over a signature) Contains a non-empty \emph{universe}
+from which a relation is assigned to each relation symbol, a function
+to each function symbol, and an element to each constant symbol.
+
+\item[Term] $a$ (over a signature) The closure of function symbols over
+constants and variables.
+
+\item[Homomorphism] $h$ (over a signature, from one model $A$ to another
+$B$) A function from the universe of $A$ to that of $B$, obeying:
+
+\begin{eqnarray*}
+h(c_A) &=& c_B \\
+h(f_A(a_1, ... a_n)) &=& f_B(h(a_1), ... h(a_n)) \\
+R_A(a_1, ... a_n) &\imp& R_B(h(a_1), ... h(a_n))
+\end{eqnarray*}
+
+\item[Positive Existential Formula] (over a signature) The closure of
+$\exists$, $\bigwedge$, and infinitary $\bigvee$ over terms, $\bot$,
+and $\top$.
+
+\item[Geometric Sequent] $\phi_1 \imp \phi_2$, where $\phi_1$ and
+$\phi_2$ are positive existential formulas.  Written
+$\seq{\phi_1}{\phi_2}$, with $\forall$ suppressed and ',' for 'and'.
+
+\item[Geometric Theory] A finite conjunction of geometric sequents. Without
+loss of generality, they can be written in the form
+$$ \forall \vec{x}\; (\seq{D(\vec{x})}
+{\OR_i(\exists \vec{y}_i\; .\; E_i(\vec{x}, \vec{y}_i))}) $$
+where $D$ and $E_i$ are conjunctions of atomic formulas. [There must
+be better terminology than ``strictly geom'' and ``weakly geom''.]
+
+A relation is \emph{geometric}, or \emph{strictly geometric}, with
+respect to a geometric theory if it can be expressed by adding
+sequents to the theory.  It is \emph{weakly geometric} if it can be
+expressed by expanding the signature as well as adding new sequents.
+
+\item[Inductive Definition] An inductive definition for a relation is
+a positive existential formula, lacking $\forall$, and with only
+finite disjunctions, which may include the relation. It may always be
+written in the form [check]:
+$$ R(\vec{x}) \equiv \OR_i \exists
+\vec{y}\; \AND_j \phi_{ij}(\vec{x}, \vec{y}) $$
+where $\phi_ij$ is atomic and may contain '=' or $R$.
+
+\end{description}
+
+
+\subsection{Some Tricks in GL}
+\begin{description}
+
+\item[Negating a Sequent]
+To negate a sequent,
+$$ \seq{\phi(\vec{x})}
+       {\OR_i \exists \vec{y}\; \psi_i(\vec{x}, \vec{y}, \vec{z})} $$
+introduce constants $\vec{x_0}$ and $\vec{z_0}$. Force the LHS to be
+true over $\vec{x_0}$,
+$$ \seq{}{\phi(\vec{x_0})} $$
+Then force each disjunct to be false over $\vec{x_0}$ and $\vec{z_0}$,
+$$ \seq{\psi_i(\vec{x_0}, \vec{y}, \vec{z_0})}{} $$
+
+\item[Replacing Functions with Relations and Equations]
+Create a relation symbol $F$ for each function symbol $f$. Add a
+sequent $\seq{F(\vec(x), a), F(\vec(x), b)}{a = b}$. Then replace each
+sequent
+$$ \seq{\phi(f(\vec{x}))}
+       {\OR_i \exists \vec{y}\; \psi(f(\vec{x}, \vec{y}, \vec{z}))} $$
+with
+$$ \seq{F(\vec{x}, a), \phi(a)}
+       {\OR_i \exists \vec{y}\; \exists b\;
+              F(\vec{x}, \vec{y}, \vec{z}, b), \psi(b)} $$
+
+\item[Replacing Constants with Functions and Equality]
+For each constant symbol $c$, create a function symbol $C$, add the
+sequent $\seq{C(x), C(y)}{x = y}$, and replace each occurrence of $c$
+with $C$.
+
+\item[Replacing Equality with a Relation]
+Create a relation $E$. Make it symmetric and transitive,
+\begin{align*}
+\aseq{E(x, y)}{E(y, x)} \\
+\aseq{E(x, y), E(y, z)}{E(x, z)}
+\end{align*}
+Then add sequents of the form
+$$\seq{R(x), E(x, y)}{R(y)}$$
+[Is this all that's neccessary?]
+
+\item[Replacing Existential Quantifiers with Functions (Skolemization)]
+$\exists x\; R(x, y)$ becomes $R(x, f(x)$
+
+\end{description}
+
+
+\subsection{Theorems}
+
+\begin{theorem}
+Inductive definitions are strictly geometric.
+\end{theorem}
+
+Expand the inductive definition as an infinite disjunction (first the
+base cases, then the cases with one inductive step, etc.). Express
+this as the right half of a geometric sequent.
+
+\begin{theorem}
+A geometric theory is satisfiable iff there is a run of the chase
+which does not fail.
+\end{theorem}
+
+First, see that if a geometric theory is satisfiable then there is a
+run of the chase which does not fail. Let $M$ be one of the models
+satisfying the theory. Begin with an empty chase structure and a map
+from its variables to variables in the model. As long as the chase has
+not terminated, pick an unsatisfied sequent. One of the disjuncts of
+the sequent, interpreted using the variable map, must be true in the
+model. Expand the chase structure to make this disjunct true, adding
+to the variable map as necessary. (But this doesn't prove there is a
+\emph{computable} run of the chase which does not fail!)
+
+Next, if a geometric theory is unsatisfiable then every run of the
+chase fails. Clearly no run of the chase could succeed, because then
+it would produce a model satisfying the theory. Nor could the chase
+run forever, because then the theory would be satisfied by the model
+formed by taking the union of the structures formed by the chase at
+each iteration (more detail?).
+
+\begin{theorem}
+Let $T$ be geometric.  For any model $M$ of $T$ there is a run of the
+chase that yields a model $N$ of $T$ such that there is a homomorphism
+from $N$ to $M$.
+\end{theorem}
+
+See above.  The variable map is the homomorphism.
+
+\begin{theorem}
+[?] Suppose $T$ is geometric and can be expressed with no branching on
+the right hand side of sequents.  If $T$ is satisfiable then no run of
+the chase fails, and any result is a universal model.
+\end{theorem}
+
+As before, pick a model and use it as an oracle for the chase. Notice
+that this time, there are no choices between disjuncts; only between
+sequents. [...?]
+
+
+%%%%%%%%%%%%%%%%%%%%%%%
+\section{Skeletons in Geometric Logic}
+%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Signature}
+
+\begin{itemize}
+
+\item Sorts: \\
+$\Strand$ $A$, $B$, $C$, $D$ \\
+$\Node$ $n$, $m$, $p$ \\
+$\Msg$ $s$, $t$, $g$, $h$, $k$
+
+\item Functions: \\
+$\msg{}$ : $\Node \to \Msg$ \\
+$\inv{k}$ : $\Msg \to \Msg$ \\
+$\strand{}$ : $\Node \to \Strand$ \\
+$\cat{g}{h}$ : $\Msg, \Msg \to \Msg$ \\
+$\enc{g}{k}$ : $\Msg, \Msg \to \Msg$ \\
+$\sk{}$ : $\Strand \to \Msg$ \\
+$\pk{}$ : $\Strand \to \Msg$ \\
+$\ltk{}{}$ : $\Strand, \Strand \to \Msg$
+
+\item Given Relations: \\
+$\strPred{\Node}{\Node}$ \\
+$\pred{\Node}{\Node}$ \\
+$\outbound{\Node}$ \\
+$\inbound{\Node}$ \\
+$\non{\Msg}$ \\
+$\uniq{\Msg}{\Node}$ \\
+($\atomic{\Msg}$)
+
+\item Defined Relations: \\
+$\outPred{\Node}{\Node}$ \\
+$\subterm{\Msg}{\Msg}$ (within) \\
+$\visSubterm{\Msg}{\Msg}$ (visibly within) \\
+$\avail{\Msg}$ \\
+($\occ{\Msg}{\Node}$) \\
+$\before{\Msg}{\Node}$ \\
+$\expl{\Msg}{\Node}$
+
+\end{itemize}
+
+The predecessor relation forms a total order, and strand predecessors
+form a partial order.
+
+(The rules for keys were taken from \emph{Shapes: Surveying Crypto Protocol Runs}, section 2.1.)
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Axioms}
+%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{description}
+
+\item[Atomic]
+
+\begin{align*}
+\aseq{}{\atomic{t} \\
+    &\ \vee \exists g\; \exists h\; t = \cat{g}{h} \\
+    &\ \vee \exists g\; \exists k\; t = \enc{g}{k}} \\
+\aseq{\atomic{\cat{g}{h}}}{ } \\
+\aseq{\atomic{\enc{g}{h}}}{ }
+\end{align*}
+
+\item[Predecessors]
+
+\begin{align*}
+\aseq{\pred{n}{m}, \pred{m}{p}}{\pred{n}{p}} \\
+\aseq{\pred{n}{m}, \pred{m}{n}}{n = m} \\
+\aseq{}{\pred{n}{m} \vee \pred{m}{n}} \\
+\\
+\aseq{\strPred{n}{m}, \strPred{m}{p}}{\strPred{n}{p}} \\
+\aseq{\strPred{n}{m}, \strPred{m}{n}}{n = m} \\
+\\
+\aseq{\strPred{n}{m}}{\pred{n}{m}}
+\end{align*}
+
+\item[Direction]
+
+\begin{align*}
+\aseq{}{\inbound{n} \vee \outbound{n}} \\
+\aseq{\inbound{n}, \outbound{n}}{}
+\end{align*}
+
+\item[Keys]
+
+\begin{align*}
+\aseq{}{\invinv{k} = k} \\
+\aseq{\inv{k} = k}{} \\
+\aseq{\sk{A} = \sk{B}}{A = B} \\
+\aseq{\pk{A} = \pk{B}}{A = B} \\
+\aseq{\inv{\pk{A}} = \inv{\pk{B}}}{A = B} \\
+\aseq{\ltk{A, B} = \ltk{C, D}}{A = C, B = D} \\
+\aseq{\sk{A} = pk{B}}{} \\
+\aseq{\sk{A} = \inv{pk{B}}}{} \\
+\aseq{\pk{A} = \inv{\pk{B}}}{}
+\end{align*}
+
+%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Defined Relations}
+%%%%%%%%%%%%%%%%%%%%%%
+
+\item[Outbound Predecessor]
+$$ \outPred{n}{m} \equiv \outbound{n}, \pred{n}{m} $$
+
+$$ \outbound{n}, \pred{n}{m} ... $$
+
+\begin{align*}
+\aseq{\outbound{n}, \pred{n}{m}}{\outPred{n}{m}}
+\end{align*}
+
+\item[Visibly Within]
+
+One term is visibly within another if it is accessible via
+deconcatenation alone.
+
+\begin{eqnarray*}
+\visSubterm{s}{t} &\equiv& s = t \\
+&\indOr& \exists g\; \exists h\; t = \cat{g}{h}, \visSubterm{s}{g} \\
+&\indOr& \exists g\; \exists h\; t = \cat{g}{h}, \visSubterm{s}{h}
+\end{eqnarray*}
+
+\item[Within]
+
+One term is within another if it is accessible by deconcatenation and
+decryption.  So the plaintext of an encryption is within it, but the
+encryption key is not.
+
+\begin{eqnarray*}
+\subterm{s}{t} &\equiv& \exists g\; \visSubterm{g}{t}, \subterm{s}{g} \\
+&\indOr& \exists g\; \exists k\; t = \enc{g}{k}, \subterm{s}{g}
+\end{eqnarray*}
+
+\item[Occurrence]
+
+$$ \occ{t}{n} \equiv \subterm{t}{\msg{n}} $$
+
+\item[Availability]
+
+Unavailability is inductive, but availability is not.
+
+\begin{eqnarray*}
+\unavail{t} &\equiv& \non{t} \\
+&\indOr& \exists n\; \uniq{t}{n} \\
+\\
+\avail{t} &\equiv& \not \unavail{t}
+\end{eqnarray*}
+
+\item[Sent Before]
+
+[Is there a better name?]
+
+$$ \before{t}{n} \equiv
+   \exists n'\; \outbound{n'}, \pred{n'}{n}, \occ{t}{n'} $$
+
+\item[Explained In]
+
+A term is explained in a node if a penetrator could construct it from
+the messages sent by outbound predecessors of the node.  'explained
+in' appears to be inductive only over the 'available' relation.
+
+\begin{eqnarray*}
+\expl{t}{n} & \equiv & \avail{t} \\
+& \indOr & \exists g\; \exists h\; t = gh, \expl{g}{n}, \expl{h}{n} \\
+& \indOr & \exists g\; \exists s\; g = ts, \expl{g}{n} \\
+& \indOr & \exists g\; \exists s\; g = st, \expl{g}{n} \\
+& \indOr & \exists g\; \exists k\; t = \enc{g}{k}, \expl{g}{n}, \expl{k}{n} \\
+& \indOr & \exists g\; \exists k\; g = \enc{t}{k}, \expl{g}{n}, \expl{\inv{k}}{n} \\
+& \indOr & \exists n' \outbound{n'}, \inbound{n}, n' \leq n, \occ{t}{n'}
+\end{eqnarray*}
+
+\item[Compromised]
+
+What if instead of adding the \emph{unavailable} relation as the
+complement of \emph{available}, we add a \emph{compromised} relation
+as a partial complement? A term is \emph{compromised} if it is not
+only available to an adversary, but actually used by an adversary to
+construct an inbound message.
+
+By adding \emph{compromised}, we no longer deal with shapes, but
+instead with shapes augmented with a set of compromised
+messages. There isn't always a minimum augmented shape.
+
+\begin{align*}
+\aseq{}{\expl{t}{n}} \\
+\\
+\aseq{\expl{t}{n}}{\before{t}{n} \\
+    &\ \vee \comp{t} \\
+    &\ \vee \exists g\; \exists h\; t = gh, \expl{g}{n}, \expl{h}{n} \\
+    &\ \vee \exists g\; \exists s\; g = st, \expl{g}{n} \\
+    &\ \vee \exists g\; \exists s\; g = ts, \expl{g}{n} \\
+    &\ \vee \exists g\; \exists k\; t = \enc{g}{k}, \expl{g}{n}, \expl{k}{n} \\
+    &\ \vee \exists g\; \exists k\; g = \enc{t}{k}, \expl{g}{n},
+\expl{\inv{k}}{n}} \\
+\\
+\aseq{\comp{t}, \unavail{t}}{ }
+\end{align*}
+
+\end{description}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%
+\section{Annotations}
+%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{description}
+
+\item[Soundness]
+A protocol is \emph{sound} if ``in every execution, whenever a message
+is received and its formula is relied upon, there were corresponding
+[previous] message transmissions with guaranteed formulas that allow
+it to be deduced.''
+
+Ideally, only guarenteed formulas would be written down, and
+reliances would be inferred. In this case, a protocol is \emph{sound}
+if, in every execution, whenever a message is sent with a guarenteed
+formula, there were previous message transmissions with guarenteed
+formulas from which it could be deduced.
+
+\end{description}
+
+\end{document}

@@ -1,0 +1,49 @@
+###############
+### Simplex ###
+###############
+
+Node(n) -> Regular(n) | Advesary(n);
+Regular(n) & Advesary(n) ->;
+
+Regular(n) -> Exists N, k : A1(n, N, k)
+           | Exists N, k : A2(n, N, k)
+		   | Exists N, k : B1(n, N, k)
+		   | Exists N, k : B2(n, N, k);
+
+# Initiator (A) #
+
+A1(n1, N, k) -> Exists t, k' :
+	Regular(n1) &
+	Encrypt(N, k, t) & Send(n1, t) & UniqOrig(N, n1) &
+	Inv(k, k') & NonOrig(k') &
+	Orig(N, n1);
+
+A2(n2, N, k) -> Exists n1 :
+	Regular(n2) &
+	Parent(n1, n2) & A1(n1, N, k) &
+	Recv(n2, N);
+
+A1(n1, N, k) & Parent(x, n1) ->;
+A2(n2, N, k) & Parent(n2, x) ->;
+A2(n2, N, k) & Parent(n1, n2) -> A1(n1, N, k);
+
+# Responder (B) #
+
+B1(n1, N, k) -> Exists t, k' :
+	Regular(B1) &
+	Encrypt(N, k, t) & Recv(n1, t) &
+	Inv(k, k') & NonOrig(k'); # Necessary?
+
+B2(n2, N, k) -> Exists n1 :
+	Regular(B2) &
+	Parent(n1, n2) & B1(n1, N, k) &
+	Send(n2, N);
+
+B1(n1, N, k) & Parent(x, n1) ->;
+B2(n2, N, k) & Parent(n2, x) ->;
+B2(n2, N, k) & Parent(n1, n2) -> B1(n1, N, k);
+
+
+### START ###
+
+Exists n, N, k : A2(n, N, k);

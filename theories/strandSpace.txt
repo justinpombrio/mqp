@@ -1,0 +1,196 @@
+# Infiltrated Skeletons
+# Justin Pombrio
+# Joshua Guttman
+# Daniel Dougherty
+
+
+##############
+### AXIOMS ###
+##############
+
+# Every Term specified in the protocol must *explicitly* be
+#   a Concatenation, Encryption, or Basic Term;
+# Term Origination is not inferred, but should be written
+#   with the protocol rules;
+# Is 'Precedes' necessary in the AdvDeConstructed rule?
+#   It should be forced to be true by the Chain relation;
+
+# Types #
+
+Term(x) | Node(x);
+Term(x) & Node(x) ->;
+
+# Send, Recv #
+
+Send(n, t) -> Node(n) & Term(t);
+Recv(n, t) -> Node(n) & Term(t);
+
+Node(n) -> Exists t: Send(n, t)
+        |  Exists t: Recv(n, t);
+
+Send(n, s) & Send(n, t) -> s = t;
+Recv(n, s) & Recv(n, t) -> s = t;
+
+Send(n, s) & Recv(n, t) ->;
+
+# Inverse #
+
+Inverse(k, k') -> Term(k) & Term(k') & Inverse(k', k);
+Inverse(k, k1) & Inverse(k, k2) -> k1 = k2;
+
+Inverse(k, k') & Basic(k) -> Basic(k');
+
+# Basic #
+
+Basic(t) -> Term(t);
+
+# Concat #
+
+Concat(g, h, t) -> Term(g) & Term(h) & Term(t);
+Concat(g, h, s) & Concat(g, h, t) -> s = t;
+Concat(G1, h1, t) & Concat(g2, h2, t) -> G1 = g2 & h1 = h2;
+
+# Encrypt #
+
+Encrypt(g, k, t) -> Term(g) & Term(k) & Term(t);
+Encrypt(g, k, s) & Encrypt(g, k, t) -> s = t;
+Encrypt(G1, k1, t) & Encrypt(g2, k2, t) -> G1 = g2 & k1 = k2;
+
+# Disjointness of Types #
+
+Basic(t) & Encrypt(g, k, t) ->;
+Basic(t) & Concat(g, h, t) ->;
+Encrypt(g, k, t) & Concat(u, v, t) ->;
+
+# Link (->) #
+
+Link(n, m) -> Exists t : Send(n, t) & Recv(m, t);
+Link(n, m) & Link(p, m) -> n = p; # Broadcast semantics;
+
+# Parent (->) #
+
+Parent(n, m) -> Node(n) & Node(m);
+Parent(n, m) & Parent(n, p) -> m = p;
+Parent(n, m) & Parent(p, m) -> n = p;
+
+# Uniquely Originating #
+
+UniqOrig(t, n) -> Basic(t) & Node(n);
+
+# Non-Originating #
+
+NonOrig(t) -> Basic(t);
+
+
+###################
+### DEFINITIONS ###
+###################
+
+# Precedes #
+
+Parent(n, m) -> Precedes(n, m);
+Link(n, m, t) -> Precedes(n, m);
+
+Precedes(n, m) & Precedes(m, p) -> Precedes(n, p);
+
+# Ingredient #
+
+Term(t) -> ingredient(t, t);
+Concat(g, h, s) & ingredient(s, t) ->
+	ingredient(g, t) & ingredient(h, t);
+Encrypt(g, k, s) & ingredient(s, t) -> ingredient(g, t);
+
+
+#####################
+### Pruning Rules ###
+#####################
+
+# Non-Origination #
+
+NonOrig(t) & Orig(t, n) ->;
+
+# Shortcut for NonOrigination #
+
+NonOrig(t) & ingredient(t, s) & Send(n, s) ->;
+NonOrig(t) & ingredient(t, s) & Recv(n, s) ->;
+
+# Cyclicity #
+
+Precedes(n, n) ->;
+
+
+##################
+### ADVESARIES ###
+##################
+
+ThreeStrand(n1, n2, n3) & Parent(x, n1) ->;
+ThreeStrand(n1, n2, n3) & Parent(n3, x) ->;
+ThreeStrand(n1, n2, n3) ->
+	Parent(n1, n2) & Parent(n2, n3) &
+	Advesary(n1) & Advesary(n2) & Advesary(n3);
+
+# Generation #
+
+G1(n, t) & Parent(x, n) ->;
+G1(n, t) & Parent(n, x) ->;
+
+G1(n, t) -> Send(n, t) & Basic(t) & Orig(t, n) & Advesary(n);
+
+# Concatenation #
+
+C1(n1, g, h) -> Exists n2, n3 :
+	C2(n2, g, h) & C3(n3, g, h) & ThreeStrand(n1, n2, n3);
+C2(n2, g, h) -> Exists n1, n3 :
+	C1(n1, g, h) & C3(n3, g, h) & ThreeStrand(n1, n2, n3);
+C3(n3, g, h) -> Exists n1, n2 :
+	C1(n1, g, h) & C2(n2, g, h) & ThreeStrand(n1, n2, n3);
+
+C1(n1, g, h) -> Recv(n1, g);
+C2(n2, g, h) -> Recv(n2, h);
+C3(n3, g, h) -> Exists t :
+	Concat(g, h, t) & Send(n3, t) & Orig(t, n3);
+
+# Encryption #
+
+E1(n1, g, k) -> Exists n2, n3:
+	E2(n2, g, k) & E3(n3, g, k) & ThreeStrand(n1, n2, n3);
+E2(n2, g, k) -> Exists n1, n3:
+	E1(n1, g, k) & E3(n3, g, k) & ThreeStrand(n1, n2, n3);
+E3(n3, g, k) -> Exists n1, n2:
+	E1(n1, g, k) & E2(n2, g, k) & ThreeStrand(n1, n2, n3);
+
+E1(n1, g, k) -> Recv(n1, g);
+E2(n2, g, k) -> Recv(n2, k);
+E3(n3, g, k) -> Exists t:
+	Encrypt(g, k, t) & Send(n3, t) & Orig(t, n3);
+
+# Unpair #
+
+U1(n1, g, h) -> Exists n2, n3:
+	U2(n2, g, h) & U3(n3, g, h) & ThreeStrand(n1, n2, n3);
+U2(n2, g, h) -> Exists n1, n3:
+	U1(n1, g, h) & U3(n3, g, h) & ThreeStrand(n1, n2, n3);
+U3(n3, g, h) -> Exists n1, n2:
+	U1(n1, g, h) & U2(n2, g, h) & ThreeStrand(n1, n2, n3);
+
+U1(n1, g, h) -> Exists t:
+	Concat(g, h, t) & Recv(n1, t);
+U2(n2, g, h) -> Send(n2, g);
+U3(n3, g, h) -> Send(n3, h);
+
+# Decryption #
+
+D1(n1, g, k) -> Exists n2, n3:
+	D2(n2, g, k) & D3(n3, g, k) & ThreeStrand(n1, n2, n3);
+D2(n2, g, k) -> Exists n1, n3:
+	D1(n1, g, k) & D3(n3, g, k) & ThreeStrand(n1, n2, n3);
+D3(n3, g, k) -> Exists n1, n2:
+	D1(n1, g, k) & D2(n2, g, k) & ThreeStrand(n1, n2, n3);
+
+D1(n1, g, k) -> Exists t:
+	Encrypt(g, k, t) & Recv(n1, t);
+D2(n2, g, k) -> Exists k':
+	Inv(k, k') & Recv(n2, k');
+D3(n3, g, k) -> Send(n3, g);
+
+

@@ -1,0 +1,94 @@
+
+# Omitting type facts
+
+HYPOTHESIS : nsl-resp-3(B3, Na, Nb, A, B)
+
+# From NSL Responder
+
+nsl-resp-3(B3, Na, Nb, A, B)
+nsl-resp-2(B2, Na, Nb, A, B)
+nsl-resp-1(B1, Na, Nb, A, B)
+
+parent(B1, B2), parent(B2, B3)
+
+key(A, Ka), key(B, Kb)
+
+recv(R1, [Na A] Kb)
+send(R2, [Na Nb B] Ka)
+recv(R3, [Nb] Kb)
+
+non(Ka)
+uniq(Nb)
+basic(Ka), basic(Nb)
+
+# ingredient
+ingredient([Na Nb B] Ka, [Na Nb B] Ka)
+ingredient(Na Nb B, [Na Nb B] Ka)
+ingredient(Na Nb, [Na Nb B] Ka)
+ingredient(Nb, [Na Nb B] Ka)
+occurs(Nb, R2)
+
+# [| orig(Nb, R2) |]
+
+occurs(Nb, R2) => orig(Nb, R2) \/ exists m : ancestor(m, n), occurs(t, m).
+
+Assume the second case for now.
+ancestor(n, R2) =>
+       parent(n, R2)
+    \/ exists p : ancestor(n, p), parent(p, R2).
+
+First case: n = R1
+Second case: p = R1
+
+ancestor(n, R1) =>
+       parent(n, R1)
+    \/ exists q : ancestor(n, q), parent(q, R1)
+CONTRADICTION (R1 has no parent)
+
+So orig(Nb, R2) \/ occurs(Nb, R1).
+
+occurs(Nb, R1) => ingredient(Nb, [Na, A] Kb)
+=>    visible(Nb, [Na, A] Kb) (contradiction)
+   \/ ingedient(Nb, (Na, A))
+
+ingredient(Nb, (Na, A))
+=>    Nb = Na
+   \/ Nb = A
+
+Thus Nb = Na  or  Nb = A  or  orig(Nb, R2).
+
+# Now assume orig(Nb, R2).
+
+simple(Nb), occurs(Nb, R3), in(R3) => test(Nb, R3).
+test(Nb, R3) => protected(Nb, [Nb] Kb, R3) [1]
+    \/ constructed(Nb, R3) [2]
+    \/ decrypted(Nb, R3) [3].
+
+[2]
+constructed(Nb, R3) => exists g, k : encrypt(g, k, Nb) !
+
+[1]
+protected(Nb, [Nb] Kb, R3), encrypt(Nb, Kb, msg(R3)), visible(msg(R3), msg(R3))
+=>    protected(Nb, Nb, R3)
+   \/ prev-enc([Nb] Kb, Nb, R3).
+
+protected(Nb, Nb, R3), visible(Nb, Nb) !
+
+prev-enc([Nb] Kb, Nb, R3) => exists n :
+    precedes(n, R3), top-enc([Nb] Kb, Nb, msg(n)).
+
+top-enc([Nb] Kb, Nb, msg(n))
+=>    visible([Nb] Kb, msg(n)).
+
+node(n)
+=>    advesary(n) [1.1]
+   \/ nsl-init
+
+advesary(n) => in(n)
+
+
+
+
+
+# [| exists n : before(n, R3), regular(n), out(n) |]
+

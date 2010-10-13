@@ -1,0 +1,52 @@
+
+# Inefficiency (lemma 2) #
+
+Precedes(m, n) & Link(n, p, t) & Recv(m, t) ->;
+
+# Unique Origination (lemma 3) #
+
+UniqOrig(t, n) & Orig(t, n') -> n = n';
+
+
+##############
+### CHAINS ###
+##############
+
+# Chain rule must come first!
+
+# There is a Chain from m->s to r<-t;
+Chain(m, s, r, t) ->
+	  Link(m, r)
+	| AdvUnpairLeft(m, s, r, t)
+	| AdvUnpairRight(m, s, r, t)
+	| AdvDecrypt(m, s, r, t);
+
+AdvUnpairLeft(m, s, r, t) -> Exists x, y, n1, n2, n3:
+	Concat(x, y, s) & U1(n1, x, y) & U2(n2, x, y) & U3(n3, x, y) &
+	Link(m, n1) & Chain(n2, x, r, t);
+AdvUnpairRight(m, s, r, t) -> Exists x, y, n1, n2, n3:
+	Concat(x, y, s) & U1(n1, x, y) & U2(n2, x, y) & U3(n3, x, y) &
+	Link(m, n1) & Chain(n3, y, r, t);
+AdvDecrypt(m, s, r, t) -> Exists g, k, n1, n2, n3:
+	Encrypt(g, k, s) & D1(n1, g, k) & D2(n2, g, k) & D3(n3, g, k) &
+	Link(m, n1) & Chain(n3, g, r, t);
+
+Recv(n, t) -> Constructed(t, n);
+
+# An Advesary Constructed Term 't' and sent it to Node 'r';
+Constructed(t, r) ->
+	  AdvGenerated(t, r)
+	| AdvConcatenated(t, r)
+	| AdvEncrypted(t, r)
+	| AdvDeConstructed(t, r);
+
+AdvGenerated(t, r) -> Exists n:
+	G1(n, t) & Link(n, r);
+AdvConcatenated(t, r) -> Exists g, h, n:
+	Concat(g, h, t) & C3(n, g, h) & Link(n, r);
+AdvEncrypted(t, r) -> Exists g, k, n:
+	Encrypt(g, k, t) & E3(n, g, k) & Link(n, r);
+AdvDeConstructed(t, r) -> Exists m, s:
+	Regular(m) & Send(m, s) & Precedes(m, r) &
+	Chain(m, s, r, t);
+
