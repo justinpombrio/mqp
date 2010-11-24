@@ -1,31 +1,46 @@
 \documentclass{article}
 
+\def \compose {\circ}
+
+
 \begin{document}
 
 \title{Graph Homomorphisms}
 \author{Justin Pombrio}
 \maketitle
 
+\section{Graphs}
+
+A \emph{graph} is a set of \emph{vertices} along with a set of
+unordered pairs of distinct vertices called \emph{edges}. A
+\emph{digraph} is like a graph, but it's edges are ordered pairs. A
+\emph{relational structure}, or just \emph{structure}, has a set of
+\emph{vertices}, a set of \emph{relations} with natural \emph{arity},
+and a set of $n$-tuples of vertices for each relation of arity $n$.
+
+Unless otherwise mentioned, the following definitions and theorems
+should apply equally well to all three kinds of objects: graphs,
+digraphs, and structures.
+
 \section{Cores}
 
-A \emph{graph homomorphism from $G$ to $H$} is a function $h$ from the
-vertices of $G$ to the vertices of $H$ that preserves edges.  That is,
-if $(x, y) \in E(G)$, then $(h(x), h(y)) \in E(H)$.
-
 \begin{description}
-\item[Retract (folding)] An endomorphism $h$ onto a subgraph $H$ such that $x
-  \in H$ implies $h(x) = x$.
-\item[Core] The (unique) vertex-minimal graph in a homomorphism
-  equivalence class.
+\item[Homomorphism] A \emph{homomorphism from $G$ to $H$} is a
+  function $\phi$ from the vertices of $G$ to the vertices of $H$ that
+  preserves edges. That is, if $e$ is an edge of $G$, then the edge
+  formed by applying $\phi$ to each component of $e$ is an edge of
+  $H$.
+\item[Retract] A \emph{retract}, or \emph{folding}, of $G$ is an
+  endomorphism $\phi$ onto a subgraph $H$ of $G$ such that $x \in H$
+  implies $\phi(x) = x$.
+\item[Core] An object for which every endomorphism is also an
+  automorphism.
 \item[Antichain] A set of objects unrelated by homomorphisms.
 \end{description}
 
 \subsection{Results from [1]}
 \begin{enumerate}
-\item A graph homomorphism is uniquely represented as the composition
-  of a retract relation and a subgraph relation.
-\item A homomorphism equivalence class is uniquely represented as a
-  core.
+\item A homomorphism equivalence class has at most one core.
 \item A core is uniquely represented as an antichain of connected
   cores.
 \item A graph $G$ is uniquely represented as the infinite sequence
@@ -34,22 +49,72 @@ if $(x, y) \in E(G)$, then $(h(x), h(y)) \in E(H)$.
 
 \subsection{Proofs}
 \begin{enumerate}
-\item Given a homomorphism $h$ from $G$ to $H$, its retract is the
-  image of $G$ under $H$, which is a subgraph of $H$. Given a retract
-  of $G$ which is a subgraph of $H$, their composition will be a
-  homomorphism because both preserve edges.
-\item Every homomorphism equivalence class has a core. If an
-  equivalence class has two cores, then there are homomorphism from
-  each to the other, which define a bijection, which must preserve
-  edges both ways. Thus the cores are isomorphic.
+\item If an equivalence class has two cores, then there are
+  homomorphisms from each to the other, $\phi$ and $\phi'$. Consider
+  the compositions $\phi \compose \phi'$ and $\phi' \compose
+  \phi$. The first is an endomorphism from the first object to itself,
+  and hence an automorphism, and the second is an endomorphism from
+  second object to itself, hence an automorphism. Since both $\phi
+  \compose \phi'$ and $\phi' \compose \phi$ are bijections, so are
+  $\phi$ and $\phi'$. Now we can show that $\phi$ is an
+  isomorphism. We already know that it is a bijective homomorphism, so
+  we need only show that it's inverse $\phi^{-1}$ is a homomorphism.
+  $\phi^{-1}$ is equal to $(\phi' \compose \phi)^{-1} \compose \phi'$,
+  which is the composition of an automorphism and a homomorphism,
+  which is a homomorphism. Thus $\phi$ is an isomorphism and the
+  equivalence class's cores are isomorphic.
 \item Every core is the disjoint union of some connected
-  components. Each component must be a core, or else there would be a
-  homomorphism from the whole graph to a smaller graph. Likewise,
-  there can be no homomorphism between components, or else there would
-  be an endomorphism from the whole graph to a proper subgraph of
-  it. Thus the components of any core form an antichain.
+  components. Each component must be a core, or else it would have an
+  endomorphism which is not an automorphism and so would the whole
+  object. Likewise, there can be no homomorphism between components,
+  since it could be used to construct an endomorphism which is not an
+  automorphism by mapping one component to the other, and every other
+  component to itself. Thus the components of any core (which are
+  themselves connected cores) form an antichain.
 \end{enumerate}
 
-[1]: Peter J. Cameron. Graph homomorphisms (class notes). September 2006. http://www.maths.qmul.ac.uk/~pjc/csgnotes/hom1.pdf\&ei=mGLGTKbnBIS8lQfn08nhAQ\&usg=AFQjCNGzeaz6lktEnqV0CabYPW-IhTDbkw
+In [2], Bauslaugh points out that cores ought be defined as graphs for
+which every endomorphism is an automorphism, and \emph{not} as a
+vertex-minimal member of a graph homomorphism equivalence class as
+suggested in [1]. For finite graphs, these definitions are equivalent,
+but for infinite graphs only the latter results in cores being
+unique. Consider, for instance, the (countably) infinite graph with
+vertices ${0, 1, 2, ...}$ and edges ${(x, y) | x < y}$. Under the
+vertex-minimal core definition, this graph has an infinite number of
+cores, given by the subgraphs induced by ${n, n+1, n+2, ...}$ for any
+$n \geq 1$. These are in the same homomorphism equivalence class -- a
+forward homomorphism maps $x$ to $x + n$, and a reverse homomorphism
+maps $x$ to $x$. And each core is indeed vertex minimal -- they each
+have infinitely many vertices, and there is no homomorphism to any
+finite graph, since that graph would have to include a clique of every
+order.
+
+\emph{A jointly universal set of relational structures may have more
+  than one core.} Take as an example the set consisting of a triangle
+and a Grotzsch Graph.
+
+\begin{enumerate}
+\item Determining whether $G$ is $H$-colorable is NP complete for
+  fixed $H$ and varying $G$.
+\item If there is a homomorphism from $G$ to $H$, what can you say
+  about the existence of cores of $G$ and $H$?
+\item Is the image of every endomorphism isomorphic to a retract?
+\end{enumerate}
+
+[1]: Peter J. Cameron. Graph homomorphisms (class notes). September 2006. http://www.maths.qmul.ac.uk/~pjc/csgnotes/hom1.pdf
+
+[2]: Bruce Lloyd Bauslaugh. Homomorphisms of infinite directed
+graphs. December 1994. Simon Fraser University.
 
 \end{document}
+
+
+\begin{comment}
+A \emph{digraph} consists of a set of \emph{vertices} along with a set
+of (ordered) pairs of vertices called \emph{edges}. There are two
+equivalent ways to define graphs. They may be defined similarly to
+digraphs, except with edges being \emph{unordered} pairs of
+vertices. Or they may be viewed as a special case of digraph in which
+the edge relation is symmetric and irreflexive. We will use the first
+definition [this could change].
+\end{comment}
