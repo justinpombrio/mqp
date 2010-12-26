@@ -1,0 +1,24 @@
+
+# Algorithm
+# ~~~~~~~~~
+# (see CPSA Primer / Authentication Tests)
+#
+# 1. Find an unrealized reception node n.
+#
+# 2. Consider each simple ingredient c of n.
+# Recv(n, t) & Ingredient(c, t) & Simple(c) -> Test(c, n);
+#
+# 3. Collect the topmost encryptions in which c appears from n's predecessors.
+#
+# 4. If c appears outside those encryptions in n, then the cut is unsolved.
+#
+# 5. A cut can be solved by:
+#    a. Identifying a context of c with the topmost encryption of one of n's predecessors
+#       (What other identifications are possible?)
+#       (make (4) false)
+#       (contraction)
+#    b. Adding a listener node
+#       (allow the advesary to break one of the encryptions)
+#       (listener augmentation)
+#    c. Adding a regular node
+#       (regular augmentation)

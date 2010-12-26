@@ -1,0 +1,667 @@
+\documentclass[12pt]{article}
+\usepackage{amsmath, amsthm, amssymb, verbatim}
+
+% Formatting definitions %
+
+\newtheorem{theorem}{Theorem}
+
+\newcommand{\closure}{\odot}
+\newcommand{\OR}{\bigvee}
+\newcommand{\AND}{\bigwedge}
+\newcommand{\true}{\top}
+\newcommand{\false}{\bot}
+\newcommand{\imp}{\Rightarrow}
+\newcommand{\compose}{\circ}
+\newcommand{\seq}[2]{#1 \ \vdash\  #2}
+\newcommand{\aseq}[2]{#1 & \ \vdash\  #2}
+\newcommand{\indOr}{\vee}
+
+% Strand Space definitions %
+
+\newcommand{\Node}{\mbox{Node}}
+\newcommand{\Msg}{\mbox{Term}}
+\newcommand{\Strand}{\mbox{Strand}}
+
+\newcommand{\enc}[2]{\{|#1|\}_{#2}}
+\newcommand{\pair}[2]{(#1, #2)}
+\newcommand{\funcSig}[3]{#1 & : #2 \rightarrow #3}
+\newcommand{\inv}[1]{#1^{-1}}
+\newcommand{\invinv}[1]{#1^{-1 -1}}
+\newcommand{\sk}[1]{\mbox{sk}(#1)}
+\newcommand{\pk}[1]{\mbox{pk}(#1)}
+\newcommand{\ltk}[1]{\mbox{lkt}(#1)}
+\newcommand{\msg}[1]{\mbox{msg}(#1)}
+\newcommand{\cat}[2]{#1 #2}
+\newcommand{\strand}[1]{\mbox{strand}(#1)}
+
+\newcommand{\pred}[2]{#1 \leq #2}
+\newcommand{\strPred}[2]{#1 \Rightarrow^* #2}
+\newcommand{\outbound}[1]{+#1}
+\newcommand{\inbound}[1]{-#1}
+\newcommand{\non}[1]{\mbox{non } #1}
+\newcommand{\uniq}[2]{#1 \mbox{ uniq-orig } #2}
+\newcommand{\atomic}[1]{\mbox{atomic } #1}
+
+\newcommand{\outPred}[2]{#1 \mbox{ out-pred } #2}
+\newcommand{\subterm}[2]{#1 \sqsubseteq #2}
+\newcommand{\visSubterm}[2]{#1 \sqsubseteq_v #2}
+\newcommand{\avail}[1]{\mbox{avail } #1}
+\newcommand{\unavail}[1]{\mbox{unavail } #1}
+\newcommand{\comp}[1]{\mbox{compromised } #1}
+\newcommand{\occ}[2]{#1 \mbox{ occ } #2}
+\newcommand{\expl}[2]{#1 \mbox{ expl } #2}
+\newcommand{\before}[2]{#1 \mbox{ sent-before } #2}
+
+% Things to add:
+% ``The region in which a nonce has never been found outside an escape
+% set is nondecreasing.''
+
+\begin{document}
+
+Outline:
+\begin{enumerate}
+\item Formally define strand spaces / infiltrated skeletons
+\item Write as a geometric theory
+\item Partition the rules into soundness and completeness rules
+\item Give inference rules (normalisation and efficiency and chaining
+  -vs.- cuts)
+\item Prove their equivalence to the completeness rules; show that
+  each is redundant with respect to the other.
+\item Find circumstances under which the chase fully terminates.
+\end{enumerate}
+
+Works so far:
+\begin{enumerate}
+\item Geometric Logic
+\item The Chase
+\item Normalization, Efficiency, Chaining
+\end{enumerate}
+
+Work to do:
+\begin{enumerate}
+\item CPSA algorithm
+\item Translating protocol specs into geometric logic
+\item Extensions
+\end{enumerate}
+
+\section{Motivation}
+
+  What are the advantages of geometric logic; why bother performing
+  cryptographic protocol analysis in this new domain?
+
+  Foremost, cryptographic protocol analysis is traditionally
+  implemented in imperitive programming languages. Switching to a
+  declarative style has the advantage of making correctness easier to
+  verify, and the system easier to reason about in general. First
+  order logic is also a natural way to express the definitions of the
+  formalism used.
+
+  Second, a geometric theory is both flexible and extensible. Any
+  extension expressible in geometric logic can be added trivially; the
+  only implementation concern is the priority of the rules.
+
+  Third, the chase can perhaps shed some light on the working of
+  existing algorithms. It seems to mimic them in a way; there is
+  perhaps a close relation between the chase's search for minimal
+  theories and the algorithms' search for representative shapes.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%
+%                     %
+%   Geometric Logic   %
+%                     %
+%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Geometric Logic}
+
+\subsection{Definitions}
+  
+  \begin{description}
+
+  \item[Signature] A \emph{signature} consists of a set of
+    \emph{relation symbols}, each with a natural numbered
+    \emph{arity}.
+
+  \item [Structure] A \emph{structure} over a signature has a
+    non-empty set called a \emph{domain}, and assigns to each relation
+    symbol in the signature a relation over this domain.
+
+  \item[Homomorphism] A \emph{homomorphism} $h$ from one structure to
+    another is a function from the domain of the first to the domain
+    of the second that preserves relations.
+    \[ R_A(a_1, ... a_n) &\imp& R_B(h(a_1), ... h(a_n)) \]
+
+  \item[Atom] An \emph{atom} over a signature is a relation symbol
+    applied to an appropriate number of \emph{variables}.
+
+  \item[Positive Existential Formula] (over a signature) The closure
+    of $\exists$, $\bigwedge$, and infinitary $\bigvee$ over terms,
+    $\bot$, and $\top$.
+
+  \item[Geometric Sequent] $\phi_1 \imp \phi_2$, where $\phi_1$ and
+    $\phi_2$ are positive existential formulas.  Written
+    $\seq{\phi_1}{\phi_2}$, with $\forall$ suppressed and ',' for
+    'and'.
+
+  \item[Geometric Theory] A finite conjunction of geometric
+    sequents. Without loss of generality, they can be written in the
+    form
+    $$ \forall \vec{x}\; (\seq{D(\vec{x})} {\OR_i(\exists \vec{y}_i\;
+      .\; E_i(\vec{x}, \vec{y}_i))}) $$ where $D$ and $E_i$ are
+    conjunctions of atomic formulas. [There must be better terminology
+      than ``strictly geom'' and ``weakly geom''.]
+
+    A relation is \emph{geometric}, or \emph{strictly geometric}, with
+    respect to a geometric theory if it can be expressed by adding
+    sequents to the theory.  It is \emph{weakly geometric} if it can
+    be expressed by expanding the signature as well as adding new
+    sequents.
+
+  \item[Inductive Definition] An inductive definition for a relation
+    is a positive existential formula, lacking $\forall$, and with
+    only finite disjunctions, which may include the relation. It may
+    always be written in the form [check]:
+    $$ R(\vec{x}) \equiv \OR_i \exists \vec{y}\; \AND_j
+    \phi_{ij}(\vec{x}, \vec{y}) $$ where $\phi_ij$ is atomic and may
+    contain '=' or $R$.
+
+  \end{description}
+
+
+\subsection{Some Tricks in GL}
+
+  \begin{description}
+
+  \item[Negating a Sequent] To negate a sequent,
+    $$ \seq{\phi(\vec{x})} {\OR_i \exists \vec{y}\; \psi_i(\vec{x},
+    \vec{y}, \vec{z})} $$ introduce constants $\vec{x_0}$ and
+    $\vec{z_0}$. Force the LHS to be true over $\vec{x_0}$,
+    $$ \seq{}{\phi(\vec{x_0})} $$ Then force each disjunct to be false
+    over $\vec{x_0}$ and $\vec{z_0}$,
+    $$ \seq{\psi_i(\vec{x_0}, \vec{y}, \vec{z_0})}{} $$
+
+  \item[Replacing Functions with Relations and Equations] Create a
+    relation symbol $F$ for each function symbol $f$. Add a sequent
+    $\seq{F(\vec(x), a), F(\vec(x), b)}{a = b}$. Then replace each
+    sequent
+    $$ \seq{\phi(f(\vec{x}))} {\OR_i \exists \vec{y}\; \psi(f(\vec{x},
+      \vec{y}, \vec{z}))} $$ with
+    $$ \seq{F(\vec{x}, a), \phi(a)} {\OR_i \exists \vec{y}\; \exists
+      b\; F(\vec{x}, \vec{y}, \vec{z}, b), \psi(b)} $$
+
+  \item[Replacing Constants with Functions and Equality] For each
+    constant symbol $c$, create a function symbol $C$, add the sequent
+    $\seq{C(x), C(y)}{x = y}$, and replace each occurrence of $c$ with
+    $C$.
+
+  \item[Replacing Equality with a Relation] Create a relation
+    $E$. Make it symmetric and transitive,
+    \begin{align*}
+      \aseq{E(x, y)}{E(y, x)} \\ \aseq{E(x, y), E(y, z)}{E(x, z)}
+    \end{align*}
+    Then add sequents of the form
+    $$\seq{R(x), E(x, y)}{R(y)}$$ [Is this all that's neccessary?]
+
+  \item[Replacing Existential Quantifiers with Functions
+    (Skolemization)] $\exists x\; R(x, y)$ becomes $R(x, f(x)$
+
+  \end{description}
+
+
+\subsection{Theorems}
+
+  \begin{theorem}
+    Inductive definitions are strictly geometric.
+  \end{theorem}
+
+  Expand the inductive definition as an infinite disjunction (first
+  the base cases, then the cases with one inductive step,
+  etc.). Express this as the right half of a geometric sequent.
+
+  \begin{theorem}
+    A geometric theory is satisfiable iff there is a run of the chase
+    which does not fail.
+  \end{theorem}
+
+  First, see that if a geometric theory is satisfiable then there is a
+  run of the chase which does not fail. Let $M$ be one of the models
+  satisfying the theory. Begin with an empty chase structure and a map
+  from its variables to variables in the model. As long as the chase
+  has not terminated, pick an unsatisfied sequent. One of the
+  disjuncts of the sequent, interpreted using the variable map, must
+  be true in the model. Expand the chase structure to make this
+  disjunct true, adding to the variable map as necessary. (But this
+  doesn't prove there is a \emph{computable} run of the chase which
+  does not fail!)
+
+  Next, if a geometric theory is unsatisfiable then every run of the
+  chase fails. Clearly no run of the chase could succeed, because then
+  it would produce a model satisfying the theory. Nor could the chase
+  run forever, because then the theory would be satisfied by the model
+  formed by taking the union of the structures formed by the chase at
+  each iteration (more detail?).
+
+  \begin{theorem}
+    Let $T$ be geometric.  For any model $M$ of $T$ there is a run of
+    the chase that yields a model $N$ of $T$ such that there is a
+    homomorphism from $N$ to $M$.
+  \end{theorem}
+
+  See above.  The variable map is the homomorphism.
+
+  \begin{theorem}
+    [?] Suppose $T$ is geometric and can be expressed with no
+    branching on the right hand side of sequents.  If $T$ is
+    satisfiable then no run of the chase fails, and any result is a
+    universal model.
+  \end{theorem}
+
+  As before, pick a model and use it as an oracle for the
+  chase. Notice that this time, there are no choices between
+  disjuncts; only between sequents. [...?]
+
+
+%%%%%%%%%%%%%%%%%%%%%
+%                   %
+%   Homomorphisms   %
+%                   %
+%%%%%%%%%%%%%%%%%%%%%
+
+\section{Homomorphisms}
+
+  A \emph{graph} is a set of \emph{vertices} along with a set of
+  unordered pairs of distinct vertices called \emph{edges}. A
+  \emph{digraph} is like a graph, but it's edges are ordered pairs. A
+  \emph{relational structure}, or just \emph{structure}, has a set of
+  \emph{vertices}, a set of \emph{relations} with natural
+  \emph{arity}, and a set of $n$-tuples of vertices for each relation
+  of arity $n$.
+
+  Unless otherwise mentioned, the following definitions and theorems
+  should apply equally well to all three kinds of objects: graphs,
+  digraphs, and structures.
+
+\subsection{Cores}
+
+  \begin{description}
+  \item[Homomorphism] A \emph{homomorphism from $G$ to $H$} is a
+    function $\phi$ from the vertices of $G$ to the vertices of $H$
+    that preserves edges. That is, if $e$ is an edge of $G$, then the
+    edge formed by applying $\phi$ to each component of $e$ is an edge
+    of $H$.
+  \item[Retract] A \emph{retract}, or \emph{folding}, of $G$ is an
+    endomorphism $\phi$ onto a subgraph $H$ of $G$ such that $x \in H$
+    implies $\phi(x) = x$.
+  \item[Core] An object for which every endomorphism is also an
+    automorphism.
+  \item[Antichain] A set of objects unrelated by homomorphisms.
+  \end{description}
+
+\subsection{Results from [1]}
+  \begin{enumerate}
+  \item A homomorphism equivalence class has at most one core.
+  \item A core is uniquely represented as an antichain of connected
+    cores.
+  \item A graph $G$ is uniquely represented as the infinite sequence
+    $|Hom(F_i, G)|$ for any enumeration of all finite graphs $F_i$.
+  \end{enumerate}
+
+\subsection{Proofs}
+  \begin{enumerate}
+  \item If an equivalence class has two cores, then there are
+    homomorphisms from each to the other, $\phi$ and $\phi'$. Consider
+    the compositions $\phi \compose \phi'$ and $\phi' \compose
+    \phi$. The first is an endomorphism from the first object to
+    itself, and hence an automorphism, and the second is an
+    endomorphism from second object to itself, hence an
+    automorphism. Since both $\phi \compose \phi'$ and $\phi' \compose
+    \phi$ are bijections, so are $\phi$ and $\phi'$. Now we can show
+    that $\phi$ is an isomorphism. We already know that it is a
+    bijective homomorphism, so we need only show that it's inverse
+    $\phi^{-1}$ is a homomorphism.  $\phi^{-1}$ is equal to $(\phi'
+    \compose \phi)^{-1} \compose \phi'$, which is the composition of
+    an automorphism and a homomorphism, which is a homomorphism. Thus
+    $\phi$ is an isomorphism and the equivalence class's cores are
+    isomorphic.
+  \item Every core is the disjoint union of some connected
+    components. Each component must be a core, or else it would have
+    an endomorphism which is not an automorphism and so would the
+    whole object. Likewise, there can be no homomorphism between
+    components, since it could be used to construct an endomorphism
+    which is not an automorphism by mapping one component to the
+    other, and every other component to itself. Thus the components of
+    any core (which are themselves connected cores) form an antichain.
+  \end{enumerate}
+
+  In [2], Bauslaugh points out that cores ought be defined as graphs
+  for which every endomorphism is an automorphism, and \emph{not} as a
+  vertex-minimal member of a graph homomorphism equivalence class as
+  suggested in [1]. For finite graphs, these definitions are
+  equivalent, but for infinite graphs only the latter results in cores
+  being unique. Consider, for instance, the (countably) infinite graph
+  with vertices ${0, 1, 2, ...}$ and edges ${(x, y) | x < y}$. Under
+  the vertex-minimal core definition, this graph has an infinite
+  number of cores, given by the subgraphs induced by ${n, n+1, n+2,
+    ...}$ for any $n \geq 1$. These are in the same homomorphism
+  equivalence class -- a forward homomorphism maps $x$ to $x + n$, and
+  a reverse homomorphism maps $x$ to $x$. And each core is indeed
+  vertex minimal -- they each have infinitely many vertices, and there
+  is no homomorphism to any finite graph, since that graph would have
+  to include a clique of every order.
+
+  \emph{A jointly universal set of relational structures may have more
+    than one core.} Take as an example the set consisting of a
+  triangle and a Grotzsch Graph.
+
+  \begin{enumerate}
+  \item Determining whether $G$ is $H$-colorable is NP complete for
+    fixed $H$ and varying $G$.
+  \item If there is a homomorphism from $G$ to $H$, what can you say
+    about the existence of cores of $G$ and $H$?
+  \item Is the image of every endomorphism isomorphic to a retract?
+  \end{enumerate}
+
+  [1]: Peter J. Cameron. Graph homomorphisms (class notes). September
+  2006. http://www.maths.qmul.ac.uk/~pjc/csgnotes/hom1.pdf
+
+  [2]: Bruce Lloyd Bauslaugh. Homomorphisms of infinite directed
+  graphs. December 1994. Simon Fraser University.
+
+
+%%%%%%%%%%%%%%%%%
+%               %
+%   The Chase   %
+%               %
+%%%%%%%%%%%%%%%%%
+
+\section{The Chase}
+
+  A run of the chase \emph{fully terminates} when it returns a finite
+  number of finite models and then halts.
+
+\subsubsection{Parallelization}
+
+  It can be unsafe to coerce two rules in parallel. Consider the
+  theory
+\begin{verbatim}
+  -> A & B & S
+A -> (P & S) | Q
+B -> P | (Q & S)
+\end{verbatim}
+  The model ${A, B, S, P, Q}$ could be generated if instances of the
+  second and third rules were coerced in parallel, even though it is
+  not generated by any run of the chase!
+
+  Likewise, it can be dangerous to coerce two instances of a rule in
+  parallel. Consider the theory
+\begin{verbatim}
+  -> Exists x, y: A(x, y) & A(y, x)
+(x, y) -> P(x) | P(y)
+\end{verbatim}
+  Considering both instances of the second rule in parallel could
+  produce the model ${A(0, 1), P(0), P(1)}$, which again is not
+  generated by any run of the chase.
+
+  A sufficient condition for it to be safe to consider two rules in
+  parallel is when their right hand sides share no relations. In this
+  case, coercing the right hand side of
+
+
+%%%%%%%%%%%%%%%%%%%%%%
+%                    %
+%   Implementation   %
+%                    %
+%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Implementation}
+
+\subsection{Structure}
+  The geometric theory is partitioned into three sections:
+
+  \begin{enumerate}
+  \item Protocol Specification
+  \item Strand Space Axioms
+  \item Inference Rules
+  \end{enumerate}
+
+\section{Target Theorems}
+
+  \begin{enumerate}
+  \item
+    Show that every model generated by the chase is, in fact, an
+    infiltrated skeleton.
+  \item
+    If $A$ is a realized infiltrated skeleton, then there exists a
+    homomorphism from some model returned by the chase to $A$.
+  \item
+    Show that the chase fully terminates under certain conditions.
+  \end{enumerate}
+
+  [Possible proof technique: assume the theory ends with
+    ``completeness rules'' -- the rest of the axioms of the strand
+    space formalisms -- and then show them to be unnecessary.]
+
+\section{Strand Spaces}
+
+  The \emph{strand space formalism} was developed as a method for
+  formally reasoning about cryptographic protocols. It distinguishes
+  between two different kinds of participants: regular participants
+  and an adversary. A single physical entity can be represented as
+  multiple regular strands if they play more than one role in the
+  protocol.
+
+  Participants in a protocol run are represented by \emph{strands},
+  and communicate with each other by sending and receiving messages. A
+  regular participant is represented by a regular strand and must
+  follow the protocol. The adversary is represented by zero or more
+  adversary strands, and can manipulate the messages that regular
+  strands send and receive.
+
+  The actions of both the regular participants and the advesary are
+  abstracted into message passing; this is assumed to be able to
+  capture all relevant information. For instance, if a private key is
+  assumed insecure and the advesary may be able to learn it, this
+  could only be represented by an advesary strand receiving the
+  key. As such, every strand consists of a (non-empty) sequence of
+  message passing events called \emph{nodes}. Each node either sends a
+  message or receives a message. A \emph{term} is any possible
+  message.
+
+  In our representation of this formalism, nodes and terms are the
+  first-class objects. Strands are represented only indirectly through
+  nodes.
+
+\begin{verbatim}
+    Forall x. Term(x) | Node(x) Term(x) & Node(x) -> False
+\end{verbatim}
+
+\begin{verbatim}
+    Send(n, t) -> Node(n) & Term(t) Recv(n, t) -> Node(n) & Term(t)
+
+    Node(n) -> (Exists t. Send(n, t)) | (Exists t. Recv(n, t))
+
+    Send(n, s) & Send(n, t) -> s = t Recv(n, s) & Recv(n, t) -> s = t
+
+    Send(n, s) & Recv(n, t) -> False
+\end{verbatim}
+
+\subsection{Messaging}
+
+  Terms are defined inductively over \emph{basic terms} as follows:
+
+  \begin{itemize}
+  \item Any basic term is a term.
+  \item The ciphertext $\enc{\tau_1}{\tau_2}$ is a term if the
+    plaintext $\tau_1$ and the key $\tau_2$ are terms.
+  \item The pair $\pair{\tau_1}{\tau_2}$ is a term if $\tau_1$ and
+    $\tau_2$ are terms.
+  \end{itemize}
+
+
+
+\begin{comment}
+	\subsection{Strand Spaces}
+
+			A term $t$ is an \emph{ingredient} of another term $u$ if $u$ can
+			be constructed from $t$ by repeatedly pairing with arbitrary terms
+			and encrypting with arbitrary keys. A \emph{component} of a term
+			$t$ is any term that can be retrieved simply by applying repeated
+			unpairing operations to $t$ and is not a pair itself.
+
+			A \emph{nonce} is a uniquely-originating basic term. A term $t$
+			\emph{originates} on a node $n$ of a strand $s$ if $n$ is a
+			sending node, $t$ is an ingredient of the message of $n$, and
+			$t$ is not an ingredient of any previous node on $s$. A term is
+			\emph{uniquely originating} if it originates on only one
+			strand. A term is non-originating if it does not appear in any
+			strand.
+
+			If a regular participant generates a random fresh nonce, it
+			will be assumed uniquely-originating because of the extreme
+			unlikelihood of any other participant generating and
+			originating the same value.
+
+			Similarly, non-origination is helpful in describing private
+			asymmetric keys that should never be sent as part of a message.
+
+		\subsubsection{The Adversary}
+
+			An adversary is included in the strand space
+                        formalism to represent a worst-case situation,
+                        where an attacker may control every point of
+                        communication between regular participants.
+                        The actions of the adversary are represented
+                        by \emph{adversary strands}. Recall that
+                        adversary strands are not bound by the rules
+                        defined by the protocol; they manipulate
+                        messages being sent and received by
+                        non-adversarial strands.
+
+			The capabilities of the adversary strands are given by the
+			Dolev-Yao Threat Model \textbf{references}. The five possible
+			operations that an adversary may perform are derived from both
+			the Dolev-Yao Threat Model and the strand space formalism.
+			These operations are:
+
+			\begin{description}
+			\item [pairing] the pairing of two terms
+			\item [unpairing] the extraction of a term from a pair
+			\item [encryption] given a key $k$ and a plaintext $m$, the construction of the ciphertext $\{|m|\}_k$ by encrypting $m$ with $k$
+			\item [decryption] given a ciphertext $\{|m|\}_k$ and its decryption key $k^{-1}$, the extraction of the plaintext $m$
+			\item [generation] the generation of an original term when that term is not assumed to be secure
+			\end{description}
+
+			Pairing and encryption are \emph{construction operations}.
+			Decryption and unpairing are \emph{deconstruction operations}.
+
+		\subsection{Paths}
+
+			An \emph{edge} is a directional relationship between two nodes.
+			The direct predecessor of a node within its strand is called its
+			\emph{parent}. Not every node has a parent. Whenever a node $n$ has
+			a parent $p$, there is an edge from $p$ to $n$. A \emph{link} is an
+			edge from a sending node to a receiving node that have the same
+			message. If there is a node $n$ with a link to a node $m$, $n$
+			sends $m$ a message and $m$ receives it unaltered. The \emph{path}
+			relation, written $x < y$, is the transitive closure of the edge
+			relation. A node $n$ \emph{precedes} another node $m$ when there is
+			a path from $n$ to $m$. In this formalism, events are partially
+			ordered.
+
+		\subsubsection{Normalisation / Simplification}
+
+			Two simplifying assumptions can be made about the sequence of
+			actions an adversary can perform without limiting their
+			capabilities. These simplifications are called normalisation and
+			efficiency. Guttman and Thayer \cite{GJF02} proved that adding
+			these constraints does not limit the capabilities of an adversary.
+
+			A protocol is \emph{efficient} if an adversary always takes a
+			message from the earliest point at which it appears. To be precise,
+			a protocol is efficient if, for every sending node $m$ and receiving
+			adversary node $n$, if every component of $m$ is also a component of
+			$n$, then there is no regular node $m'$ such that $m < m' < n$.
+
+			A protocol is \emph{normal} if, for any path through adversary
+			strands, the adversary always either performs a generation followed
+			by zero or more construction operations or performs zero or more
+			deconstruction operations followed by zero or more construction
+			operations. This constraint limits redundancy.
+
+			An important insight used in Cremers' algorithm \cite{Cremers08},
+			which will be called \emph{chaining}, states that terms in messages
+			received from an adversary strand always originate in a
+			non-adversarial strand. In simpler terms, an adversary can not send
+			a message to himself nor receive a message from himself.
+
+	\subsection{The Problem}
+
+		Some protocol researchers want to be able to programmatically reason
+		about cryptographic protocols. A common technique for this is to find a
+		set of essentially different classes of protocol runs, which are each a
+		subset of all possible runs of the protocol. Together, these classes
+		encompass every possible run of the protocol. This can be accomplished
+		by finding minimal models of a geometric logic representation of the
+		protocol. This happens to be precisely the problem the chase solves.
+
+		\textbf{ things from Justin go here later }
+
+	\subsection{The Solution: Minimal Models}
+
+		Given a theory $T$, the jointly minimal models $\mathcal{M}$ that the
+		chase outputs are representative of all models because there always
+		exists a homomorphism from some model $\mathbb{M} \in \mathcal{M}$ to
+		any model that satisfies $T$. Every model $\mathbb{N}$ that satisfies
+		$T$ describes a possible run of the protocol. It also indirectly
+		represents a larger class of runs, specifically the set of all runs of
+		the protocol that are described by a model $\mathbb{P}$ such that
+		$\mathbb{P} \models T$ and $\mathbb{N} \preceq \mathbb{P}$.
+
+		Since the set of all models output of the chase is jointly minimal,
+		they represents every possible run of the protocol. Finding every
+		possible run of the protocol would be prohibitive because there are
+		infinitely many. Fortunately, the chase may halt with a finite result,
+		providing a model that is representative of a class of protocol runs.
+		Fortunately, the deterministic chase implementation may output a finite
+		number of models before halting. These models are jointly minimal, and
+		therefore represent all runs of the protocol.
+
+	\subsection{Designing An Analogous Theory}
+
+		In order to create a geometric theory describing a protocol, the
+		formul{\ae} that define strand spaces, normilisation, efficiency, and
+		chaining must be derived. The formul{\ae} defining the protocol must be
+		combined with this scaffolding to create a theory that can be used to
+		infer the possible runs of the protocol.
+
+		The \emph{half-duplex protocol} was chosen to be used as an example.
+		This protocol involves two participants, Alice and Bob, and specifies
+		that the following actions take place:
+
+		\begin{enumerate}
+		\item Alice sends Bob a nonce that she generated, encrypted with Bob's public key
+		\item Bob receives the encrypted nonce
+		\item Bob replies to Alice with the decrypted nonce
+		\item Alice receives Bob's message
+		\end{enumerate}
+
+		A visual representation of the protocol, as modeled in the strand space
+		formalism, can be seen in Figure \ref{fig:half-duplex}, Appendix
+		\ref{sec:appendixHalfDuplex}.
+
+		The geometric logic rules that model this protocol were generated
+		manually by direct translation into geometric logic. Ideally, the
+		process of generating geometric logic formul{\ae} from protocols should
+		be done automatically.
+
+        %% The chase can be used for protocol analysis. A common technique for the analysis
+	%% of protocols involves identifying the \emph{essentially different} runs of
+	%% the protocol. These essentially different protocol runs are analogous to
+	%% minimal models. When a protocol is described using geometric logic, the
+	%% chase can find such minimal models. The protocol can then be analysed for
+	%% characteristics such as the existence of security violations or other
+	%% unexpected behaviour.
+
+
+\end{comment}
+\end{document}

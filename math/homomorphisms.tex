@@ -1,0 +1,185 @@
+\documentclass{article}
+
+\newcommand{\union}{\cup}
+\newcommand{\term}{\emph}
+\newcommand{\repr}[1]{\chi(#1)}
+\newcommand{\homo}[2]{#1 \rightarrow #2}
+\newcommand{\compose}{\o}
+
+
+\begin{document}
+
+\title{Relational Structure Homomorphisms}
+\author{Justin Pombrio}
+\maketitle
+
+
+\section{Digraphs}
+  A directed graph, or \term{digraph}, consists of a set of objects
+  called \term{vertices} along with a set of ordered pairs of vertices
+  called \term{arcs}.
+
+  A \term{homomorphism} between two digraphs is a function $\phi$ from
+  the vertices of one to the vertices of the other which preserves
+  arcs.  More formally, a homomorphism $\phi$ from $G_1$ to $G_2$ is a
+  function from the vertices of $G_1$ to the vertices of $G_2$ such
+  that if $(x, y)$ is an arc in $G_1$, then $(\phi(x), \phi(y))$ must
+  be an arc in $G_2$.  For convenience, let us overload homomorphisms
+  $\phi$ by writing $\phi((x, y))$ to mean $(\phi(x), \phi(y))$.
+
+\section{Structures}
+  A \term{signature} is a pair $(S, A)$, where $S$ is a set of objects
+  called \term{relation symbols}, and $A$ is a function from relation
+  symbols to their \term{arity}, a natural number.
+
+  A relational structure, or just \term{structure}, over a given
+  signature $(S, A)$ is a set of objects called \term{vertices} and a set
+  of \term{facts}.  Each fact is a relation symbol $R$ from $S$ applied
+  to an $n$-tuple of vertices, where $n$ is $A(R)$.  A fact with
+  relation symbol $R$ applied to vertices $x_1, ..., x_n$ is written
+  $R(x_1, ..., x_n)$.
+
+\section{Homomorphisms}
+  The homomorphism relation is \emph{reflexive} because the identity
+  function is always a homomorphism from a thing to itself.  It is
+  also \emph{transitive}, because the composition of a homomorphism
+  from $X$ to $Y$ and a homomorphism from $Y$ to $Z$ is itself a
+  homomorphism from $X$ to $Z$.  Thus the homomorphism relation forms
+  a \emph{quasi-order}.  But homomorphisms are not, in general,
+  antisymmetric (that is, they do not neccessarily form a
+  \emph{partial order}).  Take, for instance, the digraphs $(\{x, y,
+  z\}, \{(x, y), (x, z)\})$ and $(\{a, b\}, \{(a, b)\})$ (a path of
+  length 2 and a path of length 1).  These digraphs are not
+  isomorphic, yet there are homomorphisms from each to the other.
+  When there are homomorphisms from each of two things to the other,
+  we call them \term{homomorphically equivalent}.
+
+  Write $h(R(x_1, ..., x_n))$ for $R(h(x_1), ..., h(x_n))$.
+
+\section{Representing Structures as Colored Digraphs}
+  We will define a function $\repr$ which takes a structure with
+  relations symbols $S$, whose maximum arity is $k$, and produces a
+  colored digraph over the colors $S \union \{1, ... k\}$.  The
+  vertices of $\repr{M}$ are the vertices and edges of $M$.  And for
+  every fact $f = R(x_1, ..., x_n)$ in $M$, $\repr{M}$ has an edge
+  $(f, f)$ of color $R$ and edges $(f, x_i)$ of color $i$ for each
+  $i$.
+
+  \emph{Claim:}
+  \[\homo{M_1}{M_2} \mbox{ iff } \homo{\repr{M_1}}{\repr{M_2}} \]
+
+  \emph{Proof:} We will show that both the forward and reverse
+  implications hold.  For the foward implication, assume that $h$ is a
+  homomorphism from $M_1$ to $M_2$.  We will construct the
+  homomorphism $h'$ from $\repr{M_1}$ to $\repr{M_2}$ as follows:
+  $h'(x)$ = $h(x)$ for all vertices $x$ of $M_1$, and $h'(R(x_1, ...,
+  x_n))$ = $h(R(x_1, ..., x_n))$ = $R(h(x_1), ..., h(x_n))$ for each
+  fact $R(x_1, ..., x_n)$ of $M_1$.  Now we must show that $h'$
+  preserves edges.  First consider the edges of the form $(f, f)$ and
+  color $R$, where $f = R(x_1, ..., x_n)$ is a fact of $M_1$.  Each
+  such edge will be mapped to $(h(f), h(f))$ of color $R$.  This is
+  indeed an edge of $\repr{M_2}$, because $h(f)$ must be a fact in
+  $M_2$.  Now consider the other edges, which have form $(f, x_i)$ of
+  color $i$, where $f = R(x_1, ..., x_n)$ and $i = 1..n$.  Each will
+  be mapped to $(h(f), h(x_i))$ of color $i$.  This is an edge of
+  $\repr{M_2}$ because $h(f) = R(h(x_1), ..., h(x_i), ..., h(x_n))$ is
+  a fact of $M_2$.
+
+  For the reverse implication, assume that $h$ is a homomorphism from
+  $\repr{M_1}$ to $\repr{M_2}$.  The homomorphism $h'$ from $M_1$ to
+  $M_2$ is just the restriction of $h$ onto the vertices of $M_1$.  We
+  must show that $h'$ preserves facts.  Any fact $f = R(x_1, ...,
+  x_n)$ of $M_1$ will be mapped to $R(h(x_1), ..., h(x_n))$.  Since
+  $(f, f)$ of color $R$ is an edge of $\repr{M_1}$, $(h(f), h(f))$ of
+  color $R$ must be an edge of $\repr{M_2}$.  Likewise, there must be
+  edges $(f, x_i)$ of color $i$ for each $i$.  The only way these
+  $i+1$ edges could be present in $\repr{M_2}$ is if $R(h(x_1), ...,
+  h(x_n))$ was a fact in $M_2$.
+
+[Older notes from here on out; some falsehoods present]
+\section{Older Notes}
+
+\begin{description}
+\item[Homomorphism] A \emph{homomorphism from $G$ to $H$} is a
+  function $\phi$ from the vertices of $G$ to the vertices of $H$ that
+  preserves edges. That is, if $e$ is an edge of $G$, then the edge
+  formed by applying $\phi$ to each component of $e$ is an edge of
+  $H$.
+\item[Retract] A \emph{retract}, or \emph{folding}, of $G$ is an
+  endomorphism $\phi$ onto a subgraph $H$ of $G$ such that $x \in H$
+  implies $\phi(x) = x$.
+\item[Core] An object for which every endomorphism is also an
+  automorphism.
+\item[Antichain] A set of objects unrelated by homomorphisms.
+\end{description}
+
+\subsection{Results from [1]}
+\begin{enumerate}
+\item A homomorphism equivalence class has at most one core.
+\item A core is uniquely represented as an antichain of connected
+  cores.
+\item A graph $G$ is uniquely represented as the infinite sequence
+  $|Hom(F_i, G)|$ for any enumeration of all finite graphs $F_i$.
+\end{enumerate}
+
+\subsection{Proofs}
+\begin{enumerate}
+\item If an equivalence class has two cores, then there are
+  homomorphisms from each to the other, $\phi$ and $\phi'$. Consider
+  the compositions $\phi \compose \phi'$ and $\phi' \compose
+  \phi$. The first is an endomorphism from the first object to itself,
+  and hence an automorphism, and the second is an endomorphism from
+  second object to itself, hence an automorphism. Since both $\phi
+  \compose \phi'$ and $\phi' \compose \phi$ are bijections, so are
+  $\phi$ and $\phi'$. Now we can show that $\phi$ is an
+  isomorphism. We already know that it is a bijective homomorphism, so
+  we need only show that it's inverse $\phi^{-1}$ is a homomorphism.
+  $\phi^{-1}$ is equal to $(\phi' \compose \phi)^{-1} \compose \phi'$,
+  which is the composition of an automorphism and a homomorphism,
+  which is a homomorphism. Thus $\phi$ is an isomorphism and the
+  equivalence class's cores are isomorphic.
+\item Every core is the disjoint union of some connected
+  components. Each component must be a core, or else it would have an
+  endomorphism which is not an automorphism and so would the whole
+  object. Likewise, there can be no homomorphism between components,
+  since it could be used to construct an endomorphism which is not an
+  automorphism by mapping one component to the other, and every other
+  component to itself. Thus the components of any core (which are
+  themselves connected cores) form an antichain.
+\end{enumerate}
+
+In [2], Bauslaugh points out that cores ought be defined as graphs for
+which every endomorphism is an automorphism, and \emph{not} as a
+vertex-minimal member of a graph homomorphism equivalence class as
+suggested in [1]. For finite graphs, these definitions are equivalent,
+but for infinite graphs only the latter results in cores being
+unique. Consider, for instance, the (countably) infinite graph with
+vertices $\{0, 1, 2, ...\}$ and edges $\{(x, y) | x < y\}$. Under the
+vertex-minimal core definition, this graph has an infinite number of
+cores, given by the subgraphs induced by $\{n, n+1, n+2, ...\}$ for
+any $n \geq 1$. These are in the same homomorphism equivalence class
+-- a forward homomorphism maps $x$ to $x + n$, and a reverse
+homomorphism maps $x$ to $x$. And each core is indeed vertex minimal
+-- they each have infinitely many vertices, and there is no
+homomorphism to any finite graph, since that graph would have to
+include a clique of every order.
+
+\emph{A jointly universal set of relational structures may have more
+  than one core.} Take as an example the set consisting of a triangle
+and a Grotzsch Graph.
+
+\begin{enumerate}
+\item Determining whether $G$ is $H$-colorable is NP complete for
+  fixed $H$ and varying $G$.
+\item If there is a homomorphism from $G$ to $H$, what can you say
+  about the existence of cores of $G$ and $H$?
+\item Is the image of every endomorphism isomorphic to a retract?
+\end{enumerate}
+
+[1]: Peter J. Cameron. Graph homomorphisms (class notes). September 2006. http://www.maths.qmul.ac.uk/~pjc/csgnotes/hom1.pdf
+
+[2]: Bruce Lloyd Bauslaugh. Homomorphisms of infinite directed
+graphs. December 1994. Simon Fraser University.
+
+\end{document}
+

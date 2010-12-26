@@ -1,4 +1,4 @@
-PAPER = graph-homomorphisms
+PAPER = homomorphisms
 
 paper:
 	latex -halt-on-error -output-format=pdf $(PAPER).tex
